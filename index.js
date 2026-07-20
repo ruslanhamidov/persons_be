@@ -75,7 +75,7 @@ app.delete('/api/persons/:id', (request, response) => {
   response.status(204).end()
 })
 
-app.post('/api/persons', morgan(':method :url :status :body - :response-time ms :date[web]'),(request, response) => {
+app.post('/api/persons', morgan(':method :url :status :body - :response-time ms :date[web]'), (request, response) => {
   const body = request.body
 
   if (!body.name || !body.number) {
@@ -96,6 +96,29 @@ app.post('/api/persons', morgan(':method :url :status :body - :response-time ms 
 
   response.json(person)
   morgan.token('body', request => JSON.stringify(request.body))
+})
+
+app.put('/api/persons/:id', morgan(':method :url :status :body - :response-time ms :date[web]'), (request, response) => {
+  const id = request.params.id
+  const body = request.body
+  console.log(body)
+  if (!body.name || !body.number) {
+    return response.status(400).json({"error": "name or number is missing" })
+  }
+
+  const resPerson = persons.find(person => person.id === id)
+
+  if (resPerson) {
+    const person = {
+      ...resPerson,
+      "number": body.number,
+    }
+    const index = persons.indexOf(resPerson)
+    persons[index] = person
+    morgan.token('body', request => JSON.stringify(request.body))
+    return response.json(person)
+  }
+  return response.status(404).json({"error": "not found"})
 })
 
 
