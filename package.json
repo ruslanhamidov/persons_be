@@ -10,7 +10,7 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:ui": "@powershell Remove-Item -Recurse -Force dist && cd ../fsopen/part3/phonebook && npm run build && @powershell Copy-Item dist -Recurse ../../../persons_be",
+    "build:ui": "@powershell Remove-Item -Recurse -Force dist && cd ../fsopen/part3/phonebook && npm run build && @powershell Copy-Item dist -Recurse ../../../phonebook_be",
     "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push"
   },
   "dependencies": {
