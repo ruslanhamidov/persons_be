@@ -1,6 +1,9 @@
+require('dotenv').config()
 const express = require('express')
-const app = express()
 const morgan = require('morgan')
+const Person = require('./models/person')
+
+const app = express()
 
 app.use(express.json())
 app.use(express.static('dist'))
@@ -11,41 +14,11 @@ const dateNow = () => {
   return new Date().toString()
 }
 
-const generateId = () => {
-  return Math.floor(Math.random() * 5000)
-}
-
 const checkName = (name) => {
   return persons.find(person => person.name === name)
 }
 
-let persons = [
-    {
-      "id": "1",
-      "name": "Arto Hellas",
-      "number": "040-123456"
-    },
-    {
-      "id": "2",
-      "name": "Ada Lovelace",
-      "number": "39-44-5323523"
-    },
-    {
-      "id": "3",
-      "name": "Dan Abramov",
-      "number": "12-43-234345"
-    },
-    {
-      "id": "4",
-      "name": "Mary Poppendieck",
-      "number": "39-23-6423122"
-    }
-]
-
-app.get('/api/persons', (request, response) => {
-  response.json(persons)
-})
-
+let persons = []
 
 app.get('/info', (request, response) => {
   const count = persons.length
@@ -56,23 +29,18 @@ app.get('/info', (request, response) => {
   response.send(htmlResponse)
 })
 
-app.get('/api/persons/:id', (request, response) => {
-  const id = request.params.id
-
-  const resPerson = persons.find(person => person.id === id)
-
-  if (resPerson) {
-    return response.json(resPerson)
-  }
-  return response.status(404).json({"error": "not found"})
+app.get('/api/persons', (request, response) => {
+  Person.find({})
+    .then(persons => {
+      response.json(persons)
+    })
 })
 
-app.delete('/api/persons/:id', (request, response) => {
-  const id = request.params.id
-
-  persons = persons.filter(person => person.id != id)
-
-  response.status(204).end()
+app.get('/api/persons/:id', (request, response) => {
+  Note.findById(request.params.id)
+    .then(person => {
+      response.json(person)
+    })
 })
 
 app.post('/api/persons', morgan(':method :url :status :body - :response-time ms :date[web]'), (request, response) => {
@@ -86,22 +54,24 @@ app.post('/api/persons', morgan(':method :url :status :body - :response-time ms 
     return response.status(400).json({"error": "name must be unique"})
   }
 
-  const person = {
-    "id": String(generateId()),
-    "name": body.name,
-    "number": body.number,
-  }
+  const person = new Person({
+    name: body.name,
+    number: body.number,
+  })
 
-  persons = persons.concat(person)
+  person
+    .save()
+    .then(savedPerson => {
+      response.json(savedPerson)
+    })
 
-  response.json(person)
   morgan.token('body', request => JSON.stringify(request.body))
 })
 
 app.put('/api/persons/:id', morgan(':method :url :status :body - :response-time ms :date[web]'), (request, response) => {
   const id = request.params.id
   const body = request.body
-  console.log(body)
+
   if (!body.name || !body.number) {
     return response.status(400).json({"error": "name or number is missing" })
   }
@@ -119,6 +89,14 @@ app.put('/api/persons/:id', morgan(':method :url :status :body - :response-time 
     return response.json(person)
   }
   return response.status(404).json({"error": "not found"})
+})
+
+app.delete('/api/persons/:id', (request, response) => {
+  const id = request.params.id
+
+  persons = persons.filter(person => person.id != id)
+
+  response.status(204).end()
 })
 
 
