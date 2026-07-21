@@ -14,19 +14,19 @@ const dateNow = () => {
   return new Date().toString()
 }
 
-const checkName = (name) => {
-  return persons.find(person => person.name === name)
-}
-
 let persons = []
 
 app.get('/info', (request, response) => {
-  const count = persons.length
-  const htmlResponse = `
-    <p>Phonebook has info for ${count} people</p>
-    ${dateNow()}
-    `
-  response.send(htmlResponse)
+  let count = 0
+  Person.find({})
+    .then(persons => {
+      count = persons.length
+      const htmlResponse = `
+        <p>Phonebook has info for ${count} people</p>
+        ${dateNow()}
+        `
+      response.send(htmlResponse)
+    })
 })
 
 app.get('/api/persons', (request, response) => {
@@ -50,10 +50,6 @@ app.post('/api/persons', morgan(':method :url :status :body - :response-time ms 
     return response.status(400).json({"error": "name or number is missing" })
   }
 
-  if (checkName(body.name)) {
-    return response.status(400).json({"error": "name must be unique"})
-  }
-
   const person = new Person({
     name: body.name,
     number: body.number,
@@ -68,37 +64,47 @@ app.post('/api/persons', morgan(':method :url :status :body - :response-time ms 
   morgan.token('body', request => JSON.stringify(request.body))
 })
 
-app.put('/api/persons/:id', morgan(':method :url :status :body - :response-time ms :date[web]'), (request, response) => {
-  const id = request.params.id
-  const body = request.body
+app.put('/api/persons/:id', morgan(':method :url :status :body - :response-time ms :date[web]'), (request, response, next) => {
+  const { number } = request.body
 
-  if (!body.name || !body.number) {
-    return response.status(400).json({"error": "name or number is missing" })
-  }
+  Person.findById(request.params.id)
+    .then(person => {
+      if (!person) {
+        return response.status(404).end()
+      }
 
-  const resPerson = persons.find(person => person.id === id)
+      person.number = number
 
-  if (resPerson) {
-    const person = {
-      ...resPerson,
-      "number": body.number,
-    }
-    const index = persons.indexOf(resPerson)
-    persons[index] = person
+      return person
+        .save()
+        .then((updatedPerson) => {
+          response.json(updatedPerson)
+        })
+    })
+    .catch(error => next(error))
+
     morgan.token('body', request => JSON.stringify(request.body))
-    return response.json(person)
+})
+
+app.delete('/api/persons/:id', (request, response, next) => {
+  Person.findByIdAndDelete(request.params.id)
+    .then(result => {
+      response.status(204).end()
+    })
+    .catch(error => next(error))
+})
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' })
   }
-  return response.status(404).json({"error": "not found"})
-})
 
-app.delete('/api/persons/:id', (request, response) => {
-  const id = request.params.id
+  next(error)
+}
 
-  persons = persons.filter(person => person.id != id)
-
-  response.status(204).end()
-})
-
+app.use(errorHandler)
 
 const PORT = 3001
 app.listen(PORT, () => {
