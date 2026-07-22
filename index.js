@@ -43,7 +43,7 @@ app.get('/api/persons/:id', (request, response) => {
     })
 })
 
-app.post('/api/persons', morgan(':method :url :status :body - :response-time ms :date[web]'), (request, response) => {
+app.post('/api/persons', morgan(':method :url :status :body - :response-time ms :date[web]'), (request, response, next) => {
   const body = request.body
 
   if (!body.name || !body.number) {
@@ -56,10 +56,11 @@ app.post('/api/persons', morgan(':method :url :status :body - :response-time ms 
   })
 
   person
-    .save()
-    .then(savedPerson => {
-      response.json(savedPerson)
-    })
+  .save()
+  .then(savedPerson => {
+    response.json(savedPerson)
+  })
+  .catch(error => next(error))
 
   morgan.token('body', request => JSON.stringify(request.body))
 })
@@ -99,6 +100,8 @@ const errorHandler = (error, request, response, next) => {
 
   if (error.name === 'CastError') {
     return response.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
   }
 
   next(error)
