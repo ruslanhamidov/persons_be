@@ -14,8 +14,6 @@ const dateNow = () => {
   return new Date().toString()
 }
 
-let persons = []
-
 app.get('/info', (request, response) => {
   let count = 0
   Person.find({})
@@ -37,7 +35,7 @@ app.get('/api/persons', (request, response) => {
 })
 
 app.get('/api/persons/:id', (request, response) => {
-  Note.findById(request.params.id)
+  Person.findById(request.params.id)
     .then(person => {
       response.json(person)
     })
@@ -47,7 +45,7 @@ app.post('/api/persons', morgan(':method :url :status :body - :response-time ms 
   const body = request.body
 
   if (!body.name || !body.number) {
-    return response.status(400).json({"error": "name or number is missing" })
+    return response.status(400).json({ 'error': 'name or number is missing' })
   }
 
   const person = new Person({
@@ -56,11 +54,11 @@ app.post('/api/persons', morgan(':method :url :status :body - :response-time ms 
   })
 
   person
-  .save()
-  .then(savedPerson => {
-    response.json(savedPerson)
-  })
-  .catch(error => next(error))
+    .save()
+    .then(savedPerson => {
+      response.json(savedPerson)
+    })
+    .catch(error => next(error))
 
   morgan.token('body', request => JSON.stringify(request.body))
 })
@@ -84,7 +82,7 @@ app.put('/api/persons/:id', morgan(':method :url :status :body - :response-time 
     })
     .catch(error => next(error))
 
-    morgan.token('body', request => JSON.stringify(request.body))
+  morgan.token('body', request => JSON.stringify(request.body))
 })
 
 app.delete('/api/persons/:id', (request, response, next) => {
